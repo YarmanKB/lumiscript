@@ -135,6 +135,17 @@ You can also force capacity checks with smaller limits:
 ./build/lumivm --stack-cap 1 build/example-static.lbc
 ```
 
+### `lumils`
+
+The repository also includes a small stdio language server with diagnostics, hover, completion, and document symbols.
+
+It is built together with the rest of the project:
+
+```bash
+meson setup build
+meson compile -C build
+```
+
 ## Documentation
 
 Project documentation lives in the repository:

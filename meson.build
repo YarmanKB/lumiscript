@@ -41,6 +41,14 @@ executable(
 )
 
 executable(
+  'lumils',
+  'src/lsp_main.c',
+  include_directories: [inc, include_directories('src')],
+  dependencies: lumiscript_dep,
+  install: true,
+)
+
+executable(
   'bytecode_assert_sections',
   'tests/bytecode_assert_sections.c',
   install: false,
@@ -80,6 +88,12 @@ test(
   'compile-math-example',
   find_program('tests/compile_example.sh'),
   args: [meson.project_source_root(), meson.project_build_root(), 'example-math.lumi', 'math.lbc'],
+)
+
+test(
+  'lsp-smoke',
+  find_program('tests/lsp_smoke.sh'),
+  args: [meson.project_build_root()],
 )
 
 test(
