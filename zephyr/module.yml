@@ -2,6 +2,3 @@ name: lumiscript
 build:
   cmake: .
   kconfig: Kconfig
-
-include:
-  - include
