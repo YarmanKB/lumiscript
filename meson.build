@@ -57,61 +57,61 @@ executable(
 test(
   'compile-static-example',
   find_program('tests/compile_example.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-static.lumi', 'static.lbc'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-static.lumi', 'static.lbc'],
 )
 
 test(
   'compile-animation-example',
   find_program('tests/compile_example.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-animation.lumi', 'animation.lbc'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-animation.lumi', 'animation.lbc'],
 )
 
 test(
   'compile-stateful-example',
   find_program('tests/compile_example.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-stateful.lumi', 'stateful.lbc'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-stateful.lumi', 'stateful.lbc'],
 )
 
 test(
   'compile-conditional-example',
   find_program('tests/compile_example.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-conditional.lumi', 'conditional.lbc'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-conditional.lumi', 'conditional.lbc'],
 )
 
 test(
   'compile-nested-example',
   find_program('tests/compile_example.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-nested.lumi', 'nested.lbc'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-nested.lumi', 'nested.lbc'],
 )
 
 test(
   'compile-math-example',
   find_program('tests/compile_example.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-math.lumi', 'math.lbc'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-math.lumi', 'math.lbc'],
 )
 
 test(
   'compile-array-example',
   find_program('tests/compile_example.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-array.lumi', 'array.lbc'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-array.lumi', 'array.lbc'],
 )
 
 test(
   'compile-ripple-example',
   find_program('tests/compile_example.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-ripple.lumi', 'ripple.lbc'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-ripple.lumi', 'ripple.lbc'],
 )
 
 test(
   'compile-rand-example',
   find_program('tests/compile_example.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-rand.lumi', 'rand.lbc'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-rand.lumi', 'rand.lbc'],
 )
 
 test(
   'compile-rounding-example',
   find_program('tests/compile_example.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-rounding.lumi', 'rounding.lbc'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-rounding.lumi', 'rounding.lbc'],
 )
 
 test(
@@ -159,7 +159,7 @@ test(
 test(
   'run-static-vm',
   find_program('tests/compile_and_run_vm.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-static.lumi', 'vm-static.lbc', 'tests/vm-static-input.txt', 'tests/vm-static-expected.txt'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-static.lumi', 'vm-static.lbc', 'tests/vm-static-input.txt', 'tests/vm-static-expected.txt'],
 )
 
 test(
@@ -168,7 +168,7 @@ test(
   args: [
     meson.project_source_root(),
     meson.project_build_root(),
-    'example-static.lumi',
+    'examples/example-static.lumi',
     'static-sections.lbc',
     '1',
     '3',
@@ -187,41 +187,41 @@ test(
 test(
   'run-branching-vm',
   find_program('tests/compile_and_run_vm.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-branching.lumi', 'vm-branching.lbc', 'tests/vm-branching-input.txt', 'tests/vm-branching-expected.txt'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-branching.lumi', 'vm-branching.lbc', 'tests/vm-branching-input.txt', 'tests/vm-branching-expected.txt'],
 )
 
 test(
   'run-counter-vm',
   find_program('tests/compile_and_run_vm.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-counter.lumi', 'vm-counter.lbc', 'tests/vm-counter-input.txt', 'tests/vm-counter-expected.txt'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-counter.lumi', 'vm-counter.lbc', 'tests/vm-counter-input.txt', 'tests/vm-counter-expected.txt'],
 )
 
 test(
   'run-math-vm',
   find_program('tests/compile_and_run_vm.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-math.lumi', 'vm-math.lbc', 'tests/vm-math-input.txt', 'tests/vm-math-expected.txt'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-math.lumi', 'vm-math.lbc', 'tests/vm-math-input.txt', 'tests/vm-math-expected.txt'],
 )
 
 test(
   'run-array-vm',
   find_program('tests/compile_and_run_vm.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-array.lumi', 'vm-array.lbc', 'tests/vm-array-input.txt', 'tests/vm-array-expected.txt'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-array.lumi', 'vm-array.lbc', 'tests/vm-array-input.txt', 'tests/vm-array-expected.txt'],
 )
 
 test(
   'run-rand-vm',
   find_program('tests/compile_and_run_vm.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-rand.lumi', 'vm-rand.lbc', 'tests/vm-rand-input.txt', 'tests/vm-rand-expected.txt'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-rand.lumi', 'vm-rand.lbc', 'tests/vm-rand-input.txt', 'tests/vm-rand-expected.txt'],
 )
 
 test(
   'run-rounding-vm',
   find_program('tests/compile_and_run_vm.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-rounding.lumi', 'vm-rounding.lbc', 'tests/vm-rounding-input.txt', 'tests/vm-rounding-expected.txt'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-rounding.lumi', 'vm-rounding.lbc', 'tests/vm-rounding-input.txt', 'tests/vm-rounding-expected.txt'],
 )
 
 test(
   'reject-vm-small-stack',
   find_program('tests/run_vm_fail.sh'),
-  args: [meson.project_source_root(), meson.project_build_root(), 'example-branching.lumi', 'vm-small-stack.lbc', '--stack-cap', '1', 'capacity check failed: runtime stack too small'],
+  args: [meson.project_source_root(), meson.project_build_root(), 'examples/example-branching.lumi', 'vm-small-stack.lbc', '--stack-cap', '1', 'capacity check failed: runtime stack too small'],
 )

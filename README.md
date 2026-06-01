@@ -45,7 +45,7 @@ meson compile -C build
 ### 2) Compile a Lumi script
 
 ```bash
-./build/lumic example-static.lumi -o build/example-static.lbc
+./build/lumic examples/example-static.lumi -o build/example-static.lbc
 ```
 
 ### 3) Run the bytecode in the host VM
@@ -157,14 +157,18 @@ Project documentation lives in the repository:
 
 The repository includes a small set of example scripts:
 
-* `example-static.lumi`
-* `example-animation.lumi`
-* `example-conditional.lumi`
-* `example-counter.lumi`
-* `example-branching.lumi`
-* `example-stateful.lumi`
-* `example-nested.lumi`
-* `example-math.lumi`
+* `examples/example-static.lumi`
+* `examples/example-animation.lumi`
+* `examples/example-conditional.lumi`
+* `examples/example-counter.lumi`
+* `examples/example-branching.lumi`
+* `examples/example-stateful.lumi`
+* `examples/example-nested.lumi`
+* `examples/example-math.lumi`
+* `examples/example-array.lumi`
+* `examples/example-rand.lumi`
+* `examples/example-rounding.lumi`
+* `examples/example-ripple.lumi`
 
 ## Testing
 
