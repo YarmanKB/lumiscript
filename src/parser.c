@@ -728,6 +728,8 @@ static lumi_stmt *parse_statement(parser *p) {
         stmt = new_stmt(STMT_FOR, token.line, token.column);
         if (stmt != NULL) {
             stmt->as.for_stmt.name = copy_string(name.start, name.length);
+            stmt->as.for_stmt.name_line = name.line;
+            stmt->as.for_stmt.name_column = name.column;
             stmt->as.for_stmt.start = start_expr;
             stmt->as.for_stmt.end = end_expr;
             stmt->as.for_stmt.body = body;
@@ -758,6 +760,8 @@ static int parse_var_decl(parser *p, lumi_program *program, lumi_var_storage_kin
     decl.name = copy_string(p->current.start, p->current.length);
     decl.storage = storage;
     decl.array_size = 1;
+    decl.line = p->current.line;
+    decl.column = p->current.column;
     advance(p);
     if (match(p, TOKEN_LBRACKET)) {
         if (p->current.type != TOKEN_NUMBER) {

@@ -155,6 +155,8 @@ struct lumi_stmt {
         } if_stmt;
         struct {
             char *name;
+            size_t name_line;
+            size_t name_column;
             lumi_expr *start;
             lumi_expr *end;
             lumi_stmt_list body;
@@ -171,6 +173,8 @@ typedef struct lumi_var_decl {
     char *name;
     lumi_var_storage_kind storage;
     size_t array_size;
+    size_t line;
+    size_t column;
     lumi_expr *initializer;
 } lumi_var_decl;
 

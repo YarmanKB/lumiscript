@@ -51,6 +51,26 @@ typedef struct symbol_list {
     size_t capacity;
 } symbol_list;
 
+typedef enum local_decl_kind {
+    LOCAL_DECL_PERSISTENT = 0,
+    LOCAL_DECL_LET,
+    LOCAL_DECL_FOR,
+} local_decl_kind;
+
+typedef struct local_decl {
+    char *name;
+    size_t line;
+    size_t column;
+    size_t length;
+    local_decl_kind kind;
+} local_decl;
+
+typedef struct local_decl_list {
+    local_decl *items;
+    size_t count;
+    size_t capacity;
+} local_decl_list;
+
 typedef struct info_entry {
     const char *name;
     const char *kind;
@@ -606,10 +626,202 @@ static const info_entry *find_info(const info_entry *entries, size_t count, cons
     return NULL;
 }
 
+static int symbol_list_contains(const symbol_list *list, const char *text);
+static int symbol_list_add(symbol_list *list, const char *text, int kind);
+static void symbol_list_free(symbol_list *list);
+
+static int local_decl_list_add(local_decl_list *list, const char *name, size_t line, size_t column, local_decl_kind kind) {
+    local_decl *items;
+    char *copy;
+    if (list->count == list->capacity) {
+        size_t capacity = list->capacity == 0 ? 16 : list->capacity * 2;
+        items = realloc(list->items, capacity * sizeof(*items));
+        if (items == NULL) {
+            return 0;
+        }
+        list->items = items;
+        list->capacity = capacity;
+    }
+    copy = malloc(strlen(name) + 1);
+    if (copy == NULL) {
+        return 0;
+    }
+    strcpy(copy, name);
+    list->items[list->count].name = copy;
+    list->items[list->count].line = line;
+    list->items[list->count].column = column;
+    list->items[list->count].length = strlen(name);
+    list->items[list->count].kind = kind;
+    list->count++;
+    return 1;
+}
+
+static void local_decl_list_free(local_decl_list *list) {
+    size_t i;
+    for (i = 0; i < list->count; ++i) {
+        free(list->items[i].name);
+    }
+    free(list->items);
+    memset(list, 0, sizeof(*list));
+}
+
+static int collect_warning_expr(const lumi_expr *expr, symbol_list *reads);
+
+static int collect_warning_stmt_list(const lumi_stmt_list *list, local_decl_list *decls, symbol_list *reads) {
+    size_t i;
+    for (i = 0; i < list->count; ++i) {
+        const lumi_stmt *stmt = list->items[i];
+        switch (stmt->kind) {
+            case STMT_LET:
+                if (!local_decl_list_add(decls, stmt->as.binding.name, stmt->line, stmt->column, LOCAL_DECL_LET)
+                    || !collect_warning_expr(stmt->as.binding.value, reads)) {
+                    return 0;
+                }
+                break;
+            case STMT_ASSIGN:
+                if ((stmt->as.assign.index != NULL && !collect_warning_expr(stmt->as.assign.index, reads))
+                    || !collect_warning_expr(stmt->as.assign.value, reads)) {
+                    return 0;
+                }
+                break;
+            case STMT_COLOR:
+                if (!collect_warning_expr(stmt->as.color.value, reads)) {
+                    return 0;
+                }
+                break;
+            case STMT_IF:
+                if (!collect_warning_expr(stmt->as.if_stmt.condition, reads)
+                    || !collect_warning_stmt_list(&stmt->as.if_stmt.then_branch, decls, reads)
+                    || !collect_warning_stmt_list(&stmt->as.if_stmt.else_branch, decls, reads)) {
+                    return 0;
+                }
+                break;
+            case STMT_FOR:
+                if (!collect_warning_expr(stmt->as.for_stmt.start, reads)
+                    || !collect_warning_expr(stmt->as.for_stmt.end, reads)
+                    || !local_decl_list_add(decls, stmt->as.for_stmt.name, stmt->as.for_stmt.name_line,
+                        stmt->as.for_stmt.name_column, LOCAL_DECL_FOR)
+                    || !collect_warning_stmt_list(&stmt->as.for_stmt.body, decls, reads)) {
+                    return 0;
+                }
+                break;
+        }
+    }
+    return 1;
+}
+
+static int collect_warning_expr(const lumi_expr *expr, symbol_list *reads) {
+    size_t i;
+    if (expr == NULL) {
+        return 1;
+    }
+    switch (expr->kind) {
+        case EXPR_NUMBER:
+            return 1;
+        case EXPR_SYMBOL:
+            return symbol_list_add(reads, expr->as.symbol.name, 0);
+        case EXPR_INDEX:
+            return symbol_list_add(reads, expr->as.index.name, 0)
+                && collect_warning_expr(expr->as.index.index, reads);
+        case EXPR_UNARY:
+            return collect_warning_expr(expr->as.unary.operand, reads);
+        case EXPR_BINARY:
+            return collect_warning_expr(expr->as.binary.left, reads)
+                && collect_warning_expr(expr->as.binary.right, reads);
+        case EXPR_CALL:
+            for (i = 0; i < expr->as.call.arg_count; ++i) {
+                if (!collect_warning_expr(expr->as.call.args[i], reads)) {
+                    return 0;
+                }
+            }
+            return 1;
+        case EXPR_IF:
+            return collect_warning_expr(expr->as.if_expr.condition, reads)
+                && collect_warning_expr(expr->as.if_expr.then_value, reads)
+                && collect_warning_expr(expr->as.if_expr.else_value, reads);
+    }
+    return 1;
+}
+
+static int collect_lsp_warnings(const char *text, local_decl_list *decls, symbol_list *reads) {
+    lumi_program program;
+    lumi_parse_error error;
+    size_t i;
+
+    memset(&program, 0, sizeof(program));
+    memset(&error, 0, sizeof(error));
+    if (!lumi_parse(text, &program, &error)) {
+        free(error.message);
+        return 1;
+    }
+
+    for (i = 0; i < program.vars.count; ++i) {
+        const lumi_var_decl *var = &program.vars.items[i];
+        if (!local_decl_list_add(decls, var->name, var->line, var->column, LOCAL_DECL_PERSISTENT)
+            || !collect_warning_expr(var->initializer, reads)) {
+            lumi_program_free(&program);
+            return 0;
+        }
+    }
+    if (!collect_warning_stmt_list(&program.init_section.statements, decls, reads)
+        || !collect_warning_stmt_list(&program.update_section.statements, decls, reads)
+        || !collect_warning_stmt_list(&program.render_section.statements, decls, reads)) {
+        lumi_program_free(&program);
+        return 0;
+    }
+
+    lumi_program_free(&program);
+    return 1;
+}
+
+static int append_lsp_warning(string_buffer *payload, const local_decl *decl, int *first_diag) {
+    int start_line = decl->line > 0 ? (int)decl->line - 1 : 0;
+    int start_char = decl->column > 0 ? (int)decl->column - 1 : 0;
+    const char *label = "variable";
+
+    if (decl->kind == LOCAL_DECL_LET) {
+        label = "local binding";
+    } else if (decl->kind == LOCAL_DECL_FOR) {
+        label = "loop variable";
+    } else if (decl->kind == LOCAL_DECL_PERSISTENT) {
+        label = "persistent variable";
+    }
+
+    if (!*first_diag && !sb_append(payload, ",")) {
+        return 0;
+    }
+    *first_diag = 0;
+    if (!sb_append(payload, "{\"range\":{\"start\":{\"line\":")
+        || !sb_appendf(payload, "%d", start_line)
+        || !sb_append(payload, ",\"character\":")
+        || !sb_appendf(payload, "%d", start_char)
+        || !sb_append(payload, "},\"end\":{\"line\":")
+        || !sb_appendf(payload, "%d", start_line)
+        || !sb_append(payload, ",\"character\":")
+        || !sb_appendf(payload, "%d", start_char + (int)decl->length)
+        || !sb_append(payload, "}},\"severity\":2,\"source\":\"lumils\",\"message\":")) {
+        return 0;
+    }
+    {
+        string_buffer message = {0};
+        int ok = sb_appendf(&message, "unused %s '%s'", label, decl->name)
+            && sb_append_json_escaped(payload, message.data);
+        sb_free(&message);
+        if (!ok) {
+            return 0;
+        }
+    }
+    return sb_append(payload, "}");
+}
+
 static int send_diagnostics(const char *uri, const char *text) {
     lumi_compile_result result;
+    local_decl_list decls = {0};
+    symbol_list reads = {0};
     string_buffer payload = {0};
     int ok;
+    int first_diag = 1;
+    size_t i;
 
     memset(&result, 0, sizeof(result));
     ok = lumi_compile_source(text, &result);
@@ -640,15 +852,38 @@ static int send_diagnostics(const char *uri, const char *text) {
             sb_free(&payload);
             return 0;
         }
+        first_diag = 0;
+    } else {
+        if (!collect_lsp_warnings(text, &decls, &reads)) {
+            lumi_compile_result_free(&result);
+            local_decl_list_free(&decls);
+            symbol_list_free(&reads);
+            sb_free(&payload);
+            return 0;
+        }
+        for (i = 0; i < decls.count; ++i) {
+            if (!symbol_list_contains(&reads, decls.items[i].name)
+                && !append_lsp_warning(&payload, &decls.items[i], &first_diag)) {
+                lumi_compile_result_free(&result);
+                local_decl_list_free(&decls);
+                symbol_list_free(&reads);
+                sb_free(&payload);
+                return 0;
+            }
+        }
     }
 
     if (!sb_append(&payload, "]}}")) {
         lumi_compile_result_free(&result);
+        local_decl_list_free(&decls);
+        symbol_list_free(&reads);
         sb_free(&payload);
         return 0;
     }
 
     lumi_compile_result_free(&result);
+    local_decl_list_free(&decls);
+    symbol_list_free(&reads);
     if (!send_message(payload.data)) {
         sb_free(&payload);
         return 0;
