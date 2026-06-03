@@ -1,0 +1,48 @@
+type animation
+
+global var phase = 0
+global var meteor_x[3] = 0
+global var meteor_y[3] = 0
+global var meteor_age[3] = 10000
+global var meteor_live[3] = 0
+
+key var flash = 0
+
+update {
+    phase = (phase + dt * speed * 0.04) % 360
+
+    for i in 0..3 {
+        if meteor_live[i] {
+            meteor_age[i] = meteor_age[i] + dt * speed
+            meteor_x[i] = meteor_x[i] + dt * (0.05 + i * 0.02) * speed
+            meteor_y[i] = meteor_y[i] + dt * (0.03 + i * 0.01) * speed
+            if meteor_age[i] > 900 {
+                meteor_live[i] = 0
+            }
+        } else {
+            if rand() < 0.12 {
+                meteor_live[i] = 1
+                meteor_x[i] = rand() * 100
+                meteor_y[i] = rand() * 20
+                meteor_age[i] = 0
+            }
+        }
+    }
+}
+
+render {
+    if pressed {
+        flash = 100
+    } else {
+        flash = clamp(flash - dt * speed * 0.4, 0, 100)
+    }
+
+    let sky = clamp((sin((x + phase) * 0.04) + cos((y - phase) * 0.03) + 2) * 4, 0, 18)
+    let streak0 = if meteor_live[0] { clamp(100 - dist(x, y, meteor_x[0], meteor_y[0]) * 2 - meteor_age[0] * 0.08, 0, 100) } else { 0 }
+    let streak1 = if meteor_live[1] { clamp(100 - dist(x, y, meteor_x[1], meteor_y[1]) * 2 - meteor_age[1] * 0.08, 0, 100) } else { 0 }
+    let streak2 = if meteor_live[2] { clamp(100 - dist(x, y, meteor_x[2], meteor_y[2]) * 2 - meteor_age[2] * 0.08, 0, 100) } else { 0 }
+    let meteor = max(max(streak0, streak1), streak2)
+    let blue = clamp(sky * 5 + meteor * 2 + flash * 0.8, 0, 255)
+
+    color rgb(clamp(meteor + flash, 0, 255), clamp(sky * 3 + meteor * 1.4 + flash * 0.5, 0, 255), blue)
+}

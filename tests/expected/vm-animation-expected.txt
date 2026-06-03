@@ -1,0 +1,6 @@
+init steps=1
+render key=0 color=0x00FFFF g0=0.000000 steps=28
+update g0=4.000000 steps=9
+render key=1 color=0x000000 g0=4.000000 steps=28
+update g0=4.250000 steps=9
+render key=2 color=0x000000 g0=4.250000 steps=28

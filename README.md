@@ -16,17 +16,6 @@ Scripts are compiled from `.lumi` source into `.lbc` bytecode, then executed thr
 
 The compiler is free to allocate memory on the host, while the VM is designed around caller-provided fixed storage so it can reject scripts that do not fit available static memory before execution starts.
 
-## Key Features
-
-* **Host Compiler in C:** Compile Lumi source files into a compact bytecode format with `lumic`.
-* **Static-Memory VM:** Load and execute bytecode with fixed capacities for constants, globals, per-key state, code sections, and stack.
-* **MCU-Oriented Design:** The runtime API uses caller-owned buffers and up-front fit checks instead of dynamic allocation.
-* **Three-Stage Execution Model:** Separate one-time initialization, per-update shared logic, and per-key rendering logic.
-* **Persistent State:** Supports both shared `global var` state and per-key `key var` state.
-* **Compile-Time Folding:** Constant `let` expressions and constant-capable builtin calls are folded by the compiler when possible.
-* **Math + Color Builtins:** Includes helpers such as `sin`, `cos`, `sqrt`, `ceil`, `floor`, `round`, `lerp`, `dist`, `rand`, `rgb`, and `hsv`.
-* **Golden Bytecode Tests:** The project checks not only that scripts compile and run, but also that serialized bytecode matches expected output for selected cases.
-
 > [!IMPORTANT]
 >
 > **Please note that this is an `alpha` project.**
@@ -51,7 +40,9 @@ meson compile -C build
 ### 3) Run the bytecode in the host VM
 
 ```bash
-printf 'init\nrender 0 0 0 16 1 0 0\n' | ./build/lumivm build/example-static.lbc
+./build/lumivm build/example-static.lbc
+init
+render 0 0 0 16 1 0 0
 ```
 
 Example output:
@@ -163,20 +154,18 @@ Project documentation lives in the repository:
 
 ## Examples
 
-The repository includes a small set of example scripts:
+Practical scripts live in `examples/`:
 
 * `examples/example-static.lumi`
 * `examples/example-animation.lumi`
 * `examples/example-conditional.lumi`
 * `examples/example-counter.lumi`
-* `examples/example-branching.lumi`
 * `examples/example-stateful.lumi`
 * `examples/example-nested.lumi`
 * `examples/example-math.lumi`
-* `examples/example-array.lumi`
-* `examples/example-rand.lumi`
-* `examples/example-rounding.lumi`
 * `examples/example-ripple.lumi`
+* `examples/example-aurora.lumi`
+* `examples/example-meteors.lumi`
 
 ## Testing
 
@@ -218,8 +207,6 @@ Useful reports and patches include:
 
 * compiler or VM bugs
 * language design improvements
-* new builtin functions
-* more bytecode golden tests
 * documentation fixes
 
 If you report an issue, include:

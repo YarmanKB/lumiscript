@@ -1,0 +1,6 @@
+init
+render 0 50 50 16 1 0 0
+update 100 2
+render 1 70 40 100 2 0 0
+update 25 0.5
+render 2 20 80 25 0.5 1 100

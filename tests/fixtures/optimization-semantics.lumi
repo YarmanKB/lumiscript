@@ -1,0 +1,43 @@
+type animation
+
+global var slot[4] = 0
+global var live[4] = 1
+global var total = 0
+global var branch = 0
+
+init {
+    for i in 0..4 {
+        slot[i] = i + 1
+    }
+}
+
+update {
+    for i in 0..4 {
+        if live[i] {
+            let base = slot[i]
+            let growth = if i > 1 { dt * (i + 1) } else { speed * (i + 10) }
+            slot[i] = base + growth
+            if slot[i] > 50 {
+                live[i] = 0
+            }
+        }
+    }
+
+    branch = 0
+    if slot[0] < slot[3] {
+        branch = slot[0] + slot[3]
+    } else {
+        branch = slot[1] + slot[2]
+    }
+
+    total = slot[0] + slot[1] * 10 + slot[2] * 100 + slot[3] * 1000
+}
+
+render {
+    let visible = if pressed { total } else { slot[0] + slot[1] + slot[2] + slot[3] }
+    color rgb(
+        visible % 255,
+        branch % 255,
+        live[0] * 128 + live[1] * 64 + live[2] * 32 + live[3] * 16
+    )
+}

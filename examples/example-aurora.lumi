@@ -1,0 +1,42 @@
+type animation
+
+global var phase = 0
+global var bias[4] = 0
+
+key var charge = 0
+key var was_pressed = 0
+
+init {
+    for i in 0..4 {
+        bias[i] = (i + 1) * 7
+    }
+}
+
+update {
+    phase = (phase + dt * speed * 0.07) % 360
+
+    for i in 0..4 {
+        if phase > i * 90 {
+            bias[i] = (bias[i] + dt * (i + 1) * 0.03) % 100
+        } else {
+            bias[i] = clamp(bias[i] - dt * 0.01, 0, 100)
+        }
+    }
+}
+
+render {
+    if pressed && !was_pressed {
+        charge = 100
+    } else {
+        charge = clamp(charge - dt * speed * 0.25, 0, 100)
+    }
+    was_pressed = pressed
+
+    let d = dist(x, y, 50, 50)
+    let ripple = clamp(100 - abs(d - phase * 0.3) * 2, 0, 100)
+    let shimmer = (sin((x + phase) * 0.05) + cos((y - phase) * 0.04) + 2) * 25
+    let value = clamp(max(ripple, shimmer) + charge + bias[0] * 0.2 - d * 0.1, 0, 100)
+    let saturation = clamp(55 + charge * 0.35 + bias[2] * 0.25, 0, 100)
+
+    color hsv((phase + x * 1.5 + y * 0.7 + bias[1]) % 360, saturation, value)
+}

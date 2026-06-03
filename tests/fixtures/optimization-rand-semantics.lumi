@@ -1,0 +1,19 @@
+type animation
+
+global var a = 0
+global var b = 0
+global var c = 0
+
+update {
+    a = rand() * 0 + round(rand() * 100)
+    b = rand() + rand()
+    c = if rand() > 0.5 { rand() * 10 } else { rand() * 20 }
+}
+
+render {
+    color rgb(
+        round(a),
+        round(b * 100),
+        round((c + rand() + rand()) * 10)
+    )
+}

@@ -233,6 +233,7 @@ static void skip_newlines(parser *p) {
 static lumi_expr *parse_expression(parser *p);
 static void free_expr(lumi_expr *expr);
 static void free_stmt(lumi_stmt *stmt);
+static void free_stmt_list(lumi_stmt_list *list);
 
 static lumi_expr *parse_if_expression(parser *p) {
     lumi_expr *expr;
@@ -887,6 +888,175 @@ static void free_stmt(lumi_stmt *stmt) {
             break;
     }
     free(stmt);
+}
+
+static void free_stmt_list(lumi_stmt_list *list) {
+    size_t i;
+    if (list == NULL) {
+        return;
+    }
+    for (i = 0; i < list->count; ++i) {
+        free_stmt(list->items[i]);
+    }
+    free(list->items);
+    memset(list, 0, sizeof(*list));
+}
+
+static lumi_expr *clone_expr(const lumi_expr *expr) {
+    lumi_expr *out;
+    size_t i;
+    if (expr == NULL) {
+        return NULL;
+    }
+    out = new_expr(expr->kind, expr->line, expr->column);
+    if (out == NULL) {
+        return NULL;
+    }
+    switch (expr->kind) {
+        case EXPR_NUMBER:
+            out->as.number = expr->as.number;
+            break;
+        case EXPR_SYMBOL:
+            out->as.symbol.name = copy_string(expr->as.symbol.name, strlen(expr->as.symbol.name));
+            if (out->as.symbol.name == NULL) {
+                free_expr(out);
+                return NULL;
+            }
+            break;
+        case EXPR_INDEX:
+            out->as.index.name = copy_string(expr->as.index.name, strlen(expr->as.index.name));
+            out->as.index.index = clone_expr(expr->as.index.index);
+            if (out->as.index.name == NULL || out->as.index.index == NULL) {
+                free_expr(out);
+                return NULL;
+            }
+            break;
+        case EXPR_UNARY:
+            out->as.unary.op = expr->as.unary.op;
+            out->as.unary.operand = clone_expr(expr->as.unary.operand);
+            if (out->as.unary.operand == NULL) {
+                free_expr(out);
+                return NULL;
+            }
+            break;
+        case EXPR_BINARY:
+            out->as.binary.op = expr->as.binary.op;
+            out->as.binary.left = clone_expr(expr->as.binary.left);
+            out->as.binary.right = clone_expr(expr->as.binary.right);
+            if (out->as.binary.left == NULL || out->as.binary.right == NULL) {
+                free_expr(out);
+                return NULL;
+            }
+            break;
+        case EXPR_CALL:
+            out->as.call.name = copy_string(expr->as.call.name, strlen(expr->as.call.name));
+            out->as.call.arg_count = expr->as.call.arg_count;
+            if (out->as.call.name == NULL) {
+                free_expr(out);
+                return NULL;
+            }
+            if (expr->as.call.arg_count > 0) {
+                out->as.call.args = calloc(expr->as.call.arg_count, sizeof(*out->as.call.args));
+                if (out->as.call.args == NULL) {
+                    free_expr(out);
+                    return NULL;
+                }
+                for (i = 0; i < expr->as.call.arg_count; ++i) {
+                    out->as.call.args[i] = clone_expr(expr->as.call.args[i]);
+                    if (out->as.call.args[i] == NULL) {
+                        free_expr(out);
+                        return NULL;
+                    }
+                }
+            }
+            break;
+        case EXPR_IF:
+            out->as.if_expr.condition = clone_expr(expr->as.if_expr.condition);
+            out->as.if_expr.then_value = clone_expr(expr->as.if_expr.then_value);
+            out->as.if_expr.else_value = clone_expr(expr->as.if_expr.else_value);
+            if (out->as.if_expr.condition == NULL || out->as.if_expr.then_value == NULL || out->as.if_expr.else_value == NULL) {
+                free_expr(out);
+                return NULL;
+            }
+            break;
+    }
+    return out;
+}
+
+static lumi_stmt *clone_stmt(const lumi_stmt *stmt);
+
+static int clone_stmt_list(const lumi_stmt_list *src, lumi_stmt_list *out) {
+    size_t i;
+    memset(out, 0, sizeof(*out));
+    for (i = 0; i < src->count; ++i) {
+        lumi_stmt *stmt = clone_stmt(src->items[i]);
+        if (stmt == NULL || !stmt_list_push(out, stmt)) {
+            free_stmt(stmt);
+            free_stmt_list(out);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static lumi_stmt *clone_stmt(const lumi_stmt *stmt) {
+    lumi_stmt *out;
+    if (stmt == NULL) {
+        return NULL;
+    }
+    out = new_stmt(stmt->kind, stmt->line, stmt->column);
+    if (out == NULL) {
+        return NULL;
+    }
+    switch (stmt->kind) {
+        case STMT_LET:
+            out->as.binding.name = copy_string(stmt->as.binding.name, strlen(stmt->as.binding.name));
+            out->as.binding.value = clone_expr(stmt->as.binding.value);
+            if (out->as.binding.name == NULL || out->as.binding.value == NULL) {
+                free_stmt(out);
+                return NULL;
+            }
+            break;
+        case STMT_ASSIGN:
+            out->as.assign.name = copy_string(stmt->as.assign.name, strlen(stmt->as.assign.name));
+            out->as.assign.index = clone_expr(stmt->as.assign.index);
+            out->as.assign.value = clone_expr(stmt->as.assign.value);
+            if (out->as.assign.name == NULL || (stmt->as.assign.index != NULL && out->as.assign.index == NULL)
+                || out->as.assign.value == NULL) {
+                free_stmt(out);
+                return NULL;
+            }
+            break;
+        case STMT_COLOR:
+            out->as.color.value = clone_expr(stmt->as.color.value);
+            if (out->as.color.value == NULL) {
+                free_stmt(out);
+                return NULL;
+            }
+            break;
+        case STMT_IF:
+            out->as.if_stmt.condition = clone_expr(stmt->as.if_stmt.condition);
+            if (out->as.if_stmt.condition == NULL
+                || !clone_stmt_list(&stmt->as.if_stmt.then_branch, &out->as.if_stmt.then_branch)
+                || !clone_stmt_list(&stmt->as.if_stmt.else_branch, &out->as.if_stmt.else_branch)) {
+                free_stmt(out);
+                return NULL;
+            }
+            break;
+        case STMT_FOR:
+            out->as.for_stmt.name = copy_string(stmt->as.for_stmt.name, strlen(stmt->as.for_stmt.name));
+            out->as.for_stmt.name_line = stmt->as.for_stmt.name_line;
+            out->as.for_stmt.name_column = stmt->as.for_stmt.name_column;
+            out->as.for_stmt.start = clone_expr(stmt->as.for_stmt.start);
+            out->as.for_stmt.end = clone_expr(stmt->as.for_stmt.end);
+            if (out->as.for_stmt.name == NULL || out->as.for_stmt.start == NULL || out->as.for_stmt.end == NULL
+                || !clone_stmt_list(&stmt->as.for_stmt.body, &out->as.for_stmt.body)) {
+                free_stmt(out);
+                return NULL;
+            }
+            break;
+    }
+    return out;
 }
 
 int lumi_parse(const char *source, lumi_program *out_program, lumi_parse_error *out_error) {
@@ -2262,15 +2432,32 @@ static int emit_for_stmt(emitter *e, lumi_stmt *stmt) {
     }
     for (i = start_index; i < end_index; ++i) {
         const_value loop_value;
+        lumi_stmt_list body_copy = {0};
+        lumi_stmt_list *body = &stmt->as.for_stmt.body;
+        int copied_body = 0;
         loop_value.kind = CONST_FLOAT;
         loop_value.number = (float)i;
+        if (e->optimization_level >= 1) {
+            if (!clone_stmt_list(&stmt->as.for_stmt.body, &body_copy)) {
+                set_emit_error(e, stmt->line, stmt->column, "out of memory while unrolling for loop");
+                return 0;
+            }
+            body = &body_copy;
+            copied_body = 1;
+        }
         e->scope_depth++;
         if (!declare_symbol(e, stmt->as.for_stmt.name, SYMBOL_LET, 0, 1, 1, loop_value, NULL, stmt->line, stmt->column)
-            || !emit_stmt_list(e, &stmt->as.for_stmt.body)) {
+            || !emit_stmt_list(e, body)) {
+            if (copied_body) {
+                free_stmt_list(&body_copy);
+            }
             return 0;
         }
         pop_scope_symbols(&e->symbols, e->scope_depth);
         e->scope_depth--;
+        if (copied_body) {
+            free_stmt_list(&body_copy);
+        }
     }
     return 1;
 }
